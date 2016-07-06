@@ -1,23 +1,25 @@
 ---
 # tasks file for roles/letsencrypt
-- name: install requirements and update apt cache if it is too old
+- name: "Making sure required packages are installed and apt cache is updated if it is too old"
   apt: name={{ item }} update_cache=yes cache_valid_time=86400
   with_items:
       - git
       - openssl
+      - net-tools
 
-- name: create required directories
+- name: "Making sure required directories are present"
   file: dest={{ item }} state=directory
   with_items:
       - "{{ letsencrypt_path }}"
       - "{{ letsencrypt_webroot }}"
 
-- name: clone letsencrypt repository
-  git: repo=https://github.com/letsencrypt/letsencrypt dest={{ letsencrypt_path }} force=yes
+- name "Creating the dhparam file"
+  command: sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem {{ dhparam_size }} creates=/etc/ssl/certs/dhparam.pem
 
-# When certificate is created for multiple (SAN) domains the first domain name is used as path for key and certs. Let's check the list of DNS names for the cert by the first domain (if any)
+- name: "Cloning certbot (letsencrypt)"
+  git: repo=https://github.com/certbot/certbot.git dest="{{ letsencrypt_path }}" force=yes
 
-- name: get list of domains in certificate if any
+- name: "Geting list of domains in certificate (if any)"
   shell: openssl x509 -text < /etc/letsencrypt/live/{{ item.domains[0] }}/cert.pem|grep DNS|tr -d ' '|tr ',' '\n'|cut -d ':' -f 2
   failed_when: false
   changed_when: false
@@ -26,7 +28,7 @@
   register: dns_info
   tags: dontgen
 
-- name: check if server listens on port 80
+- name: "Checking if server listens on port 80"
   shell: netstat -tunlp | grep ":80 "
   failed_when: false
   changed_when: check_80.rc == 1
@@ -34,7 +36,7 @@
   always_run: yes
   tags: dontgen
 
-- name: check if server listens on port 443
+- name: "Checking if server listens on port 443"
   shell: netstat -tunlp | grep ":443 "
   failed_when: false
   changed_when: check_443.rc == 1
@@ -42,10 +44,20 @@
   always_run: yes
   tags: dontgen
   
+# When certificate is created for multiple (SAN) domains the first domain name is used as path for key and certs. 
+# Let's check the list of DNS names for the cert by the first domain (if any)
+#
+# - letsencrypt: array of domains you want to have a letsencrypt certificate (see README for examples)
+# - generation_indexes: empty array, will contain domains to be appended to the letsencrypt certs
+# - san_dict: an  item of the letsencrypt array
+# - i: loop index in the letsencrypt array
+# - domain: item of letsencrypt[i][domains] array
+#
+# So what we do is compare {{ domain }} to all lines of {{ dns_info }} relevant to the particular loop index i
+# if its missing, it gets appended to generation_indexes array, and a corresponding letsencrypt-auto command 
+# is appended to the generate_cmds array to be later displayed, or executed.
 
-# Create generation commands if domain list in existing certificate is incomplete (it is empty if certificate doesn't exist)
-
-- name: define generation commands
+- name: "Generating letsencrypt commands"
   set_fact:
       generate_cmds: "{%- set generation_indexes = [] -%}
                       {%- for san_dict in letsencrypt -%}
@@ -57,7 +69,7 @@
                           {%- endfor -%}
                       {%- endfor -%}
                       {%- for i in generation_indexes -%}
-                          {{ letsencrypt_path }}/letsencrypt-auto certonly --agree-tos --redirect --expand --text --email {{ letsencrypt[i].email }}
+                          {{ letsencrypt_path }}/letsencrypt-auto certonly --rsa-key-size {{ letsencrypt_rsa_key_size }} --agree-tos --redirect --expand --text --email {{ letsencrypt[i].email }}
                           {%- for domain in letsencrypt[i].domains -%}
                               {{ ' ' }}-d {{ domain }}
                           {%- endfor -%}
@@ -69,14 +81,13 @@
                           {%- endif -%}
                           {{ '\n' if not loop.last else '' }}
                       {%- endfor -%}"
-
   tags: dontgen
 
-- name: show cert generation commands
+- name: Showing cert generation commands
   debug: var=generate_cmds.split('\n')
   tags: dontgen
 
-- name: generate cert
+- name: Requesting certs
   shell: "{{ item.0 }}"
   when: "{{ item.0|length > 0 and item.1 == inventory_hostname }}"
   register: gen_result
@@ -85,10 +96,10 @@
       - "{{ generate_cmds.split('\n') }}"
       - "{{ play_hosts if letsencrypt_group else [inventory_hostname] }}"
   
-- name: show generation results
+- name: Showing generation results
   debug: var={{ gen_result.results|map(attribute='stdout_lines')|list }}
 
-- name: put letsencrypt cron job
+- name: Putting letsencrypt cron job
   template: src=cron.d/letsencrypt.j2 dest=/etc/cron.d/letsencrypt
   tags: 
       - dontgen
