@@ -1,7 +1,7 @@
 letsencrypt
 =========
 
-Role is designed for [Let's encrypt](https://letsencrypt.org/) integration. It installs requested certificates and sets up automatic validation task to cron. Propper configured web server is required, see [requirements](#requirements).
+Ansible role designed for [Let's encrypt](https://letsencrypt.org/) integration. It installs requested certificates and sets up automatic validation task to cron. Propper configured web server is required, see [requirements](#requirements).
 
 There's a ```dontgen``` tag that dosn't generate certificates but just shows you the generation commands and puts cron tasks.
 
@@ -148,7 +148,7 @@ Example Playbook
 
 ```
 - hosts: servers
-  sudo: yes
+  become: yes
   vars:
       letsencrypt:
           - { email: "hostmaster@example.com", domains: ["example.com", "www.example.com"] }
@@ -169,9 +169,3 @@ Known issues
 ------------
 
 When domain list for multiple domains (SAN) changed "let's encrypt" creates new certificate paths.
-
-TODO
------
-
-- Implement individual cron times for different servers
-- Implement one by one generation if run on a group of hosts
