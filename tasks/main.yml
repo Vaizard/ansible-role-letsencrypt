@@ -1,11 +1,11 @@
 ---
 # tasks file for roles/letsencrypt
-- name: "Making sure required packages are installed and apt cache is updated if it is too old"
-  apt: name={{ item }} update_cache=yes cache_valid_time=86400
-  with_items:
-      - git
-      - openssl
-      - net-tools
+- name: "Including distro-specific variables"
+  include_vars: "vars_{{ ansible_distribution }}.yml"
+
+- name: "Making sure required packages are installed for {{ ansible_distribution }}"
+  include: "setup_{{ ansible_distribution }}.yml"
+  when: ansible_distribution in [ 'Ubuntu', 'Gentoo' ]
 
 - name: "Making sure required directories are present"
   file: dest={{ item }} state=directory
@@ -14,7 +14,7 @@
       - "{{ letsencrypt_webroot }}"
       - "/etc/ssl/private"
 
-- name "Creating the dhparam file"
+- name "Making sure the dhparam file is present"
   command: openssl dhparam -out /etc/ssl/private/dhparams.pem {{ dhparam_size }} creates=/etc/ssl/private/dhparams.pem
 
 - name: "Cloning certbot (letsencrypt)"
