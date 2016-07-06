@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  author: Roman Belyakovsky
-  description: 
-  company: Git in Sky
+  author: Pavel Stratil
+  description: Forked from Git in Sky, Roman Belyakovsky
+  company: Vaizard Institute
   license: BSD
   min_ansible_version: 2.1
   platforms:
