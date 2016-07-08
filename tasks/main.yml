@@ -70,7 +70,7 @@
                           {%- endfor -%}
                       {%- endfor -%}
                       {%- for i in generation_indexes -%}
-                          {{ letsencrypt_path }}/letsencrypt-auto certonly --rsa-key-size {{ letsencrypt_rsa_key_size }} --agree-tos --redirect --expand --text --email {{ letsencrypt[i].email }}
+                          {{ letsencrypt_path }}/letsencrypt-auto certonly --rsa-key-size {{ letsencrypt_rsa_key_size }} --agree-tos --expand --text --email {{ letsencrypt[i].email }}
                           {%- for domain in letsencrypt[i].domains -%}
                               {{ ' ' }}-d {{ domain }}
                           {%- endfor -%}
