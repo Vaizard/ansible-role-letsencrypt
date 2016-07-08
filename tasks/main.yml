@@ -14,8 +14,8 @@
       - "{{ letsencrypt_webroot }}"
       - "/etc/ssl/private"
 
-- name "Making sure the dhparam file is present"
-  command: "openssl dhparam -out /etc/ssl/private/dhparams.pem {{ dhparam_size }} creates=/etc/ssl/private/dhparams.pem"
+- name: "Making sure the dhparam file is present"
+  command: openssl dhparam -out /etc/ssl/private/dhparams.pem "{{ dhparam_size }}" creates=/etc/ssl/private/dhparams.pem
 
 - name: "Cloning certbot (letsencrypt)"
   git: repo=https://github.com/certbot/certbot.git dest="{{ letsencrypt_path }}" force=yes
@@ -70,7 +70,7 @@
                           {%- endfor -%}
                       {%- endfor -%}
                       {%- for i in generation_indexes -%}
-                          {{ letsencrypt_path }}/letsencrypt-auto certonly --rsa-key-size {{ letsencrypt_rsa_key_size }} --agree-tos --expand --text --email {{ letsencrypt[i].email }}
+                          {{ letsencrypt_path }}/letsencrypt-auto certonly --non-interactive --rsa-key-size {{ letsencrypt_rsa_key_size }} --agree-tos --expand --text --email {{ letsencrypt[i].email }}
                           {%- for domain in letsencrypt[i].domains -%}
                               {{ ' ' }}-d {{ domain }}
                           {%- endfor -%}
@@ -85,7 +85,7 @@
   tags: dontgen
 
 - name: Showing cert generation commands
-  debug: var=generate_cmds.split('\n')
+  debug: var=generate_cmds.stdout
   tags: dontgen
 
 - name: Requesting certs
