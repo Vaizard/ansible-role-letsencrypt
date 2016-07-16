@@ -85,7 +85,7 @@
   tags: dontgen
 
 - name: Showing cert generation commands
-  debug: var=generate_cmds.stdout
+  debug: var=generate_cmds.split('\n')
   tags: dontgen
 
 - name: Requesting certs
