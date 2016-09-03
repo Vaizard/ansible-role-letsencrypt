@@ -14,9 +14,6 @@
       - "{{ letsencrypt_webroot }}"
       - "/etc/ssl/private"
 
-- name: "Making sure the dhparam file is present"
-  command: openssl dhparam -out /etc/ssl/private/dhparams.pem "{{ dhparam_size }}" creates=/etc/ssl/private/dhparams.pem
-
 - name: "Cloning certbot (letsencrypt)"
   git: repo=https://github.com/certbot/certbot.git dest="{{ letsencrypt_path }}" force=yes
 
@@ -24,7 +21,7 @@
   shell: "openssl x509 -text < /etc/letsencrypt/live/{{ item.domains[0] }}/cert.pem|grep DNS|tr -d ' '|tr ',' '\n'|cut -d ':' -f 2"
   failed_when: false
   changed_when: false
-  always_run: yes
+  check_mode: no
   with_items: "{{ letsencrypt }}"
   register: dns_info
   tags: dontgen
@@ -34,7 +31,7 @@
   failed_when: false
   changed_when: check_80.rc == 1
   register: check_80
-  always_run: yes
+  check_mode: no
   tags: dontgen
 
 - name: "Checking if server listens on port 443"
@@ -42,7 +39,7 @@
   failed_when: false
   changed_when: check_443.rc == 1
   register: check_443
-  always_run: yes
+  check_mode: no
   tags: dontgen
   
 # When certificate is created for multiple (SAN) domains the first domain name is used as path for key and certs. 

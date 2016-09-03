@@ -5,5 +5,4 @@ letsencrypt_webroot: /var/www/letsencrypt
 letsencrypt_reload_nginx: yes
 letsencrypt_group: False
 letsencrypt_rsa_key_size: 4096
-dhparam_size: 4096
 letsencrypt: []
