@@ -1,5 +1,5 @@
-#{{ ansible_managed }}
-{# Set start hour and minute. We are going to run scripts with 5 minute intervals #}
+{{ ansible_managed }}
+# Set start hour and minute. We are going to run scripts with 5 minute intervals #
 {% set time = {'h': 4, 'm': 4} %}
 
 # +------------- min (0 - 59)
@@ -10,21 +10,14 @@
 # | | | | |
 # - - - - -
 # * * * * * command to be executed
-{% for host in (groups[letsencrypt_group] if letsencrypt_group else [inventory_hostname]) %}
-{% if hostvars[host].letsencrypt is defined %}
-{% for item in hostvars[host].letsencrypt %}
-{% if host == inventory_hostname %}
 
-# Renew /etc/letsencrypt/live/{{ item.domains|first }}/ certificate, SAN domains:{% for name in item.domains %} {{ name }}{% endfor %}
-
-{{ time.m % 60 }} {{ time.h + (time.m - time.m % 60) // 60  }} 14 * * root {{ letsencrypt_path }}/letsencrypt-auto certonly --webroot --webroot-path {{ letsencrypt_webroot }} {%- for name in item.domains %} -d {{ name }}{% endfor %} --renew-by-default 2>&1 | logger -t letsencrypt
-{% endif %}
+{% for item in letsencrypt %}
+# Renew /etc/letsencrypt/live/{{ item.domains|first }}/ certificate:
+{{ time.m % 60 }} {{ time.h + (time.m - time.m % 60) // 60  }} * * * root {{ letsencrypt_path }}/letsencrypt-auto certonly --webroot --webroot-path {{ letsencrypt_webroot }} {%- for name in item.domains %} -d {{ name }}{% endfor %} --keep-until-expiring --allow-subset-of-names 2>&1 | logger -t letsencrypt
 {% if time.update({'m': time.m + 5}) %}{% endif %}
 {% endfor %}
-{% endif %}
-{% endfor %}
-{% if letsencrypt_reload_nginx %}
 
-# reload nginx
+{% if letsencrypt_reload_nginx %}
+# Reload nginx
 {{ time.m % 60 }} {{ time.h + (time.m - time.m % 60) // 60  }} 14 * * root service nginx reload 2>&1 | logger -t letsencrypt
 {% endif %}
